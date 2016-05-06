@@ -159,7 +159,7 @@ def _parse_args():
         '-a', '--absence', type=key_list, action='append', default=[],
         help='specify dates where should have comment instead of work time, '
              'format= -a vacation,<date1>,<date2>,... date format can be: '
-             '<daye> , <day>-<month>, <day>-<month>-<year>')
+             '<day> , <day>-<month>, <day>-<month>-<year>')
 
     return parser.parse_args()
 
