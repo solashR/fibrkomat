@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # PYTHON_ARGCOMPLETE_OK
 
+import random
 import os.path
 import datetime
 import argparse
@@ -84,6 +85,9 @@ def _parse_args():
     parser.add_argument('-m', '--month', type=int)
     parser.add_argument('-s', '--start-hour', type=int, default=34200,
                         help='seconds since 00:00')
+    parser.add_argument('-r', '--random', type=int, default=0,
+                        help='define the fabricate time randome range')
+
     return parser.parse_args()
 
 
@@ -99,7 +103,13 @@ def main():
     t = TimeNet(args.company, args.user_number, args.password)
     t.login()
     for date, work_time in t.expected_times(year, month):
-        t.set_day_time(date, args.start_hour, args.start_hour + work_time)
+
+        start_hour = random.randint(args.start_hour,
+                                    args.start_hour + args.random)
+        end_hour = random.randint(start_hour + work_time,
+                                  start_hour + work_time + args.random)
+
+        t.set_day_time(date, start_hour, end_hour)
 
 
 if __name__ == '__main__':
