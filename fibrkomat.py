@@ -63,13 +63,19 @@ class TimeNet(object):
 
             yield date_obj, work_time
 
-    def set_day_time(self, date, start, end):
+    def set_day(self, date, start, end, comment=''):
+        start_minutes = _sec_min_part(start) if start else ''
+        start_hours = _sec_hours_part(start) if start else ''
+        end_minutes = _sec_min_part(end) if end else ''
+        end_hours = _sec_hours_part(end) if end else ''
+
         date_str = '{y}-{m}-{d}'.format(y=date.year, m=date.month, d=date.day)
         data = {'e': self._employee_id, 'tl': self._employee_id,
                 'c': self._company, 'd': date_str,
                 'task0': 0, 'taskdescr0': '', 'what0': 1,
-                'emm0': _sec_min_part(start), 'ehh0': _sec_hours_part(start),
-                'xmm0': _sec_min_part(end), 'xhh0': _sec_hours_part(end)}
+                'emm0': start_minutes, 'ehh0': start_hours,
+                'xmm0': end_minutes, 'xhh0': end_hours,
+                'remark': comment}
 
         url = os.path.join(self._SITE, 'punch/editwh3.php')
         res = self._session.post(url, data)
@@ -112,6 +118,32 @@ def _sec_min_part(sec):
     return (sec % 3600) // 60
 
 
+def str_to_date(val):
+    try:
+        return datetime.datetime.strptime(val, '%d-%m-%Y').date()
+    except ValueError:
+        pass
+
+    today = datetime.date.today()
+    try:
+        tmp = datetime.datetime.strptime(val, '%d-%m')
+        return datetime.date(today.year, tmp.month, tmp.day)
+    except ValueError:
+        pass
+
+    tmp = datetime.datetime.strptime(val, '%d')
+    return datetime.date(today.year, today.month, tmp.day)
+
+
+def key_list(val):
+    splitted = val.split(',')
+    if len(splitted) < 2:
+        raise ValueError('should have at least comment & 1 day')
+    comment = splitted[0]
+    days = [str_to_date(d) for d in splitted[1:]]
+    return comment, days
+
+
 def _parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('company', type=int)
@@ -123,7 +155,11 @@ def _parse_args():
     parser.add_argument('-r', '--random', type=int, default=0,
                         help='define the fabricate time randome range')
     parser.add_argument('-o', '--overwrite', action='store_true')
-
+    parser.add_argument(
+        '-a', '--absence', type=key_list, action='append', default=[],
+        help='specify dates where should have comment instead of work time, '
+             'format= -a vacation,<date1>,<date2>,... date format can be: '
+             '<daye> , <day>-<month>, <day>-<month>-<year>')
 
     return parser.parse_args()
 
@@ -146,7 +182,11 @@ def main():
         end_hour = random.randint(start_hour + work_time,
                                   start_hour + work_time + args.random)
 
-        t.set_day_time(date, start_hour, end_hour)
+        t.set_day(date, start_hour, end_hour)
+
+    for comment, days in args.absence:
+        for day in days:
+            t.set_day(day, start='', end='', comment=comment)
 
 
 if __name__ == '__main__':
