@@ -11,7 +11,6 @@ the client fill the entire month working days
 - ./fibrkomat.py company_number user_number password
 
 ## warnings
-- the client override any previous filled hours in the relevant month
 - the client doesn't commit the month, just fill the working hours for all days
 
 ## cli

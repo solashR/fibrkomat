@@ -14,6 +14,10 @@ class TimeNet(object):
 
     _SITE = 'http://checkin.timewatch.co.il/'
 
+    _WORK_PREFIX = ('--------------- NEW CHANGE - ROW 441 - SHOW ALL PUNCH '
+                    '---------------------&nbsp;')
+    _WORK_SUFFIX = '--------------- END NEW CHANGE ---------------------'
+
     def __init__(self, company, user, password):
         self._company = company
         self._user = user
@@ -32,7 +36,7 @@ class TimeNet(object):
         self._employee_id = int(BeautifulSoup.BeautifulSoup(res.text).find(
             'input', id='ixemplee').get('value'))
 
-    def expected_times(self, year, month):
+    def expected_times(self, year, month, skip_filled_days):
         url = os.path.join(self._SITE, 'punch/po_presence.php')
         data = {'tl': self._employee_id, 'ee': self._employee_id,
                 'e': self._company, 'm': month, 'y': year}
@@ -48,11 +52,15 @@ class TimeNet(object):
                 # not a working day
                 continue
 
+            date, _ = day.find('font').string.split(' ')
+            date_obj = datetime.datetime.strptime(date, '%d-%m-%Y').date()
+
+            if skip_filled_days and self._should_skip_day(day, date_obj):
+                continue
+
             hours, minutes = hours_min.split(':')
             work_time = int(hours) * 3600 + int(minutes) * 60
 
-            date, _ = day.find('font').string.split(' ')
-            date_obj = datetime.datetime.strptime(date, '%d-%m-%Y').date()
             yield date_obj, work_time
 
     def set_day_time(self, date, start, end):
@@ -67,6 +75,33 @@ class TimeNet(object):
         res = self._session.post(url, data)
         if 'TimeWatch - Reject' in res.text:
             raise AssertionError('set date={} time failed'.format(data))
+
+    def _should_skip_day(self, day, timestamp):
+        if self._was_time_reported(day):
+            print 'skipped {} as already filled'.format(timestamp)
+            return True
+
+        comment_filled, comment = self._was_comment_filled(day)
+        if comment_filled:
+            print 'skipped {} as has comment {}'.format(timestamp, comment)
+            return True
+
+        return False
+
+    def _was_time_reported(self, day):
+        reported = day.parent.find('td', attrs={'class': 'cb_attHours'}).text
+        if not (reported.startswith(self._WORK_PREFIX) and
+                reported.endswith(self._WORK_SUFFIX)):
+            raise AssertionError('unknown format for reported work time')
+        filled_time = reported[
+                      len(self._WORK_PREFIX): len(self._WORK_SUFFIX) * -1]
+        return filled_time
+
+    @staticmethod
+    def _was_comment_filled(day):
+        comments = day.parent.find('td', attrs={'class': 'cb_remarks'})
+        filled = '&nbsp;' != comments.text
+        return filled, comments.text
 
 
 def _sec_hours_part(sec):
@@ -87,6 +122,8 @@ def _parse_args():
                         help='seconds since 00:00')
     parser.add_argument('-r', '--random', type=int, default=0,
                         help='define the fabricate time randome range')
+    parser.add_argument('-o', '--overwrite', action='store_true')
+
 
     return parser.parse_args()
 
@@ -102,7 +139,7 @@ def main():
 
     t = TimeNet(args.company, args.user_number, args.password)
     t.login()
-    for date, work_time in t.expected_times(year, month):
+    for date, work_time in t.expected_times(year, month, not args.overwrite):
 
         start_hour = random.randint(args.start_hour,
                                     args.start_hour + args.random)
