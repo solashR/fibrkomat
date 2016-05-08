@@ -106,6 +106,8 @@ class TimeNet(object):
     @staticmethod
     def _was_comment_filled(day):
         comments = day.parent.find('td', attrs={'class': 'cb_remarks'})
+        if comments is None:
+            return False, ''
         filled = '&nbsp;' != comments.text
         return filled, comments.text
 
