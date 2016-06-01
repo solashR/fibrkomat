@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # PYTHON_ARGCOMPLETE_OK
 
+import time
 import random
 import os.path
 import datetime
@@ -184,6 +185,7 @@ def main():
         end_hour = random.randint(start_hour + work_time,
                                   start_hour + work_time + args.random)
 
+        time.sleep(1)
         t.set_day(date, start_hour, end_hour)
 
     for comment, days in args.absence:
