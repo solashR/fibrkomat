@@ -11,6 +11,11 @@ import requests
 import BeautifulSoup
 
 
+class Absense(object):
+    NO = 0
+    VACATION = 1
+
+
 class TimeNet(object):
 
     _SITE = 'http://checkin.timewatch.co.il/'
@@ -64,7 +69,7 @@ class TimeNet(object):
 
             yield date_obj, work_time
 
-    def set_day(self, date, start, end, comment=''):
+    def set_day(self, date, start, end, comment='', excuse=Absense.NO):
         start_minutes = _sec_min_part(start) if start else ''
         start_hours = _sec_hours_part(start) if start else ''
         end_minutes = _sec_min_part(end) if end else ''
@@ -76,7 +81,7 @@ class TimeNet(object):
                 'task0': 0, 'taskdescr0': '', 'what0': 1,
                 'emm0': start_minutes, 'ehh0': start_hours,
                 'xmm0': end_minutes, 'xhh0': end_hours,
-                'remark': comment}
+                'remark': comment, 'excuse': excuse}
 
         url = os.path.join(self._SITE, 'punch/editwh3.php')
         res = self._session.post(url, data)
@@ -84,6 +89,11 @@ class TimeNet(object):
             raise AssertionError('set date={} time failed'.format(data))
 
     def _should_skip_day(self, day, timestamp):
+        filled, val = self._excuse_value_filled(day)
+        if filled:
+            print u'skipped {}, already filled with {}'.format(timestamp, val)
+            return True
+
         if self._was_time_reported(day):
             print 'skipped {} as already filled'.format(timestamp)
             return True
@@ -112,6 +122,12 @@ class TimeNet(object):
         filled = '&nbsp;' != comments.text
         return filled, comments.text
 
+    @staticmethod
+    def _excuse_value_filled(day):
+        val = day.parent.find('td', attrs={'class': 'cb_absence'})
+        filled = val is not None and val.text != '&nbsp;'
+        return filled, val.text[::-1]
+
 
 def _sec_hours_part(sec):
     return sec // 3600
@@ -138,15 +154,6 @@ def str_to_date(val):
     return datetime.date(today.year, today.month, tmp.day)
 
 
-def key_list(val):
-    splitted = val.split(',')
-    if len(splitted) < 2:
-        raise ValueError('should have at least comment & 1 day')
-    comment = splitted[0]
-    days = [str_to_date(d) for d in splitted[1:]]
-    return comment, days
-
-
 def _parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('company', type=int)
@@ -159,10 +166,9 @@ def _parse_args():
                         help='define the fabricate time randome range')
     parser.add_argument('-o', '--overwrite', action='store_true')
     parser.add_argument(
-        '-a', '--absence', type=key_list, action='append', default=[],
+        '-v', '--vacation', type=str_to_date, action='append', default=[],
         help='specify dates where should have comment instead of work time, '
-             'format= -a vacation,<date1>,<date2>,... date format can be: '
-             '<day> , <day>-<month>, <day>-<month>-<year>')
+             'date format can be: <day> , <day>-<month>, <day>-<month>-<year>')
 
     return parser.parse_args()
 
@@ -188,9 +194,9 @@ def main():
         time.sleep(1)
         t.set_day(date, start_hour, end_hour)
 
-    for comment, days in args.absence:
-        for day in days:
-            t.set_day(day, start='', end='', comment=comment)
+    for day in args.vacation:
+        print 'set vacation at {}'.format(day)
+        t.set_day(day, start='', end='', excuse=Absense.VACATION)
 
 
 if __name__ == '__main__':
