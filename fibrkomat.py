@@ -165,6 +165,8 @@ def _parse_args():
     parser.add_argument('-r', '--random', type=int, default=0,
                         help='define the fabricate time randome range')
     parser.add_argument('-o', '--overwrite', action='store_true')
+    parser.add_argument('-e', '--extra_work', type=int, default=0,
+                        help='extra work time in seconds')
     parser.add_argument(
         '-v', '--vacation', type=str_to_date, action='append', default=[],
         help='specify dates where should have comment instead of work time, '
@@ -186,6 +188,7 @@ def main():
     t.login()
     for date, work_time in t.expected_times(year, month, not args.overwrite):
 
+        work_time += args.extra_work
         start_hour = random.randint(args.start_hour,
                                     args.start_hour + args.random)
         end_hour = random.randint(start_hour + work_time,
