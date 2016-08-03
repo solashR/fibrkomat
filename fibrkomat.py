@@ -6,6 +6,7 @@ import random
 import os.path
 import datetime
 import argparse
+import itertools
 
 import requests
 import BeautifulSoup
@@ -154,6 +155,25 @@ def str_to_date(val):
     return datetime.date(today.year, today.month, tmp.day)
 
 
+def days_range(start, end):
+    next_day = datetime.timedelta(1)
+    while start < end:
+        yield start
+        start += next_day
+
+
+RANGE_KEYWORD = 'to'
+
+
+def str_to_dates(val):
+    if RANGE_KEYWORD in val:
+        start, end = val.split(RANGE_KEYWORD, 1)
+        start, end = str_to_date(start.strip()), str_to_date(end.strip())
+        return days_range(start, end)
+    day = str_to_date(val)
+    return [day]
+
+
 def _parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('company', type=int)
@@ -168,11 +188,14 @@ def _parse_args():
     parser.add_argument('-e', '--extra_work', type=int, default=0,
                         help='extra work time in seconds')
     parser.add_argument(
-        '-v', '--vacation', type=str_to_date, action='append', default=[],
+        '-v', '--vacation', type=str_to_dates, action='append', default=[],
         help='specify dates where should have comment instead of work time, '
-             'date format can be: <day> , <day>-<month>, <day>-<month>-<year>')
+             'date format can be: <day> , <day>-<month>, <day>-<month>-<year>,'
+             ' <date> to <date>')
 
-    return parser.parse_args()
+    args =  parser.parse_args()
+    args.vacation = itertools.chain.from_iterable(args.vacation)
+    return args
 
 
 def main():
