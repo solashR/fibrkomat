@@ -179,7 +179,8 @@ def _parse_args():
     parser.add_argument('company', type=int)
     parser.add_argument('user_number', type=int)
     parser.add_argument('password')
-    parser.add_argument('-m', '--month', type=int)
+    parser.add_argument('-m', '--month', type=int, default=datetime.date.today().month)
+    parser.add_argument('-y', '--year', type=int, default=datetime.date.today().year)
     parser.add_argument('-s', '--start-hour', type=int, default=34200,
                         help='seconds since 00:00')
     parser.add_argument('-r', '--random', type=int, default=0,
@@ -200,16 +201,10 @@ def _parse_args():
 
 def main():
     args = _parse_args()
-    if args.month is None:
-        year_month = datetime.date.today()
-        year, month = year_month.year, year_month.month
-    else:
-        year_month = datetime.date.today()
-        year, month = year_month.year, args.month
 
     t = TimeNet(args.company, args.user_number, args.password)
     t.login()
-    for date, work_time in t.expected_times(year, month, not args.overwrite):
+    for date, work_time in t.expected_times(args.year, args.month, not args.overwrite):
 
         work_time += args.extra_work
         start_hour = random.randint(args.start_hour,
