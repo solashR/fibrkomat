@@ -92,7 +92,7 @@ class TimeNet(object):
     def _should_skip_day(self, day, timestamp):
         filled, val = self._excuse_value_filled(day)
         if filled:
-            print u'skipped {}, already filled with {}'.format(timestamp, val)
+            print u'skipped {}, already filled'.format(timestamp)
             return True
 
         if self._was_time_reported(day):
@@ -194,7 +194,7 @@ def _parse_args():
              'date format can be: <day> , <day>-<month>, <day>-<month>-<year>,'
              ' <date> to <date>')
 
-    args =  parser.parse_args()
+    args = parser.parse_args()
     args.vacation = itertools.chain.from_iterable(args.vacation)
     return args
 
