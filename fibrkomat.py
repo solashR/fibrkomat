@@ -43,7 +43,7 @@ class TimeNet(object):
         self._employee_id = int(BeautifulSoup.BeautifulSoup(res.text).find(
             'input', id='ixemplee').get('value'))
 
-    def expected_times(self, year, month, skip_filled_days):
+    def expected_times(self, year, month):
         url = os.path.join(self._SITE, 'punch/po_presence.php')
         data = {'tl': self._employee_id, 'ee': self._employee_id,
                 'e': self._company, 'm': month, 'y': year}
@@ -62,13 +62,12 @@ class TimeNet(object):
             date, _ = day.find('font').string.split(' ')
             date_obj = datetime.datetime.strptime(date, '%d-%m-%Y').date()
 
-            if skip_filled_days and self._should_skip_day(day, date_obj):
-                continue
+            is_day_filled = self._is__day_filled(day, date_obj)
 
             hours, minutes = hours_min.split(':')
             work_time = int(hours) * 3600 + int(minutes) * 60
 
-            yield date_obj, work_time
+            yield date_obj, work_time, is_day_filled
 
     def set_day(self, date, start, end, comment='', excuse=Absense.NO):
         start_minutes = _sec_min_part(start) if start else ''
@@ -89,19 +88,16 @@ class TimeNet(object):
         if 'TimeWatch - Reject' in res.text:
             raise AssertionError('set date={} time failed'.format(data))
 
-    def _should_skip_day(self, day, timestamp):
+    def _is__day_filled(self, day, timestamp):
         filled, val = self._excuse_value_filled(day)
         if filled:
-            print u'skipped {}, already filled'.format(timestamp)
             return True
 
         if self._was_time_reported(day):
-            print 'skipped {} as already filled'.format(timestamp)
             return True
 
         comment_filled, comment = self._was_comment_filled(day)
         if comment_filled:
-            print 'skipped {} as has comment {}'.format(timestamp, comment)
             return True
 
         return False
@@ -204,7 +200,9 @@ def main():
 
     t = TimeNet(args.company, args.user_number, args.password)
     t.login()
-    for date, work_time in t.expected_times(args.year, args.month, not args.overwrite):
+
+    vacations = set(args.vacation)
+    for date, work_time, is_day_filled in t.expected_times(args.year, args.month):
 
         work_time += args.extra_work
         start_hour = random.randint(args.start_hour,
@@ -213,11 +211,14 @@ def main():
                                   start_hour + work_time + args.random)
 
         time.sleep(1)
-        t.set_day(date, start_hour, end_hour)
-
-    for day in args.vacation:
-        print 'set vacation at {}'.format(day)
-        t.set_day(day, start='', end='', excuse=Absense.VACATION)
+        if date in vacations:
+            print 'set vacation at {}'.format(date)
+            t.set_day(date, start='', end='', excuse=Absense.VACATION)
+        elif not is_day_filled or args.overwrite:
+            print 'set working day at {}'.format(date)
+            t.set_day(date, start_hour, end_hour)
+        else:
+            print 'set day {} was skipped as its already filleed'.format(date)
 
 
 if __name__ == '__main__':
