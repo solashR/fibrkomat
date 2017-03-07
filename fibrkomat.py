@@ -205,7 +205,7 @@ def _parse_args():
     argv = sys.argv[1:]
     argv.extend(config)
     args = parser.parse_args(argv)
-    args.vacation = itertools.chain.from_iterable(args.vacation)
+    args.vacation = set(itertools.chain.from_iterable(args.vacation))
     return args
 
 
@@ -215,7 +215,6 @@ def main():
     t = TimeNet(args.company, args.user_number, args.password)
     t.login()
 
-    vacations = set(args.vacation)
     entries = t.expected_times(args.year, args.month)
     for date, work_time, is_day_filled in entries:
         work_time += args.extra_work
@@ -225,7 +224,7 @@ def main():
                                   start_hour + work_time + args.random)
 
         time.sleep(1)
-        if date in vacations:
+        if date in args.vacation:
             print 'set vacation at {}'.format(date)
             t.set_day(date, excuse=Absense.VACATION)
         elif not is_day_filled or args.overwrite:
