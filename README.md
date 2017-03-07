@@ -4,10 +4,9 @@ a client for timewatch.co.il (working hours tracking system)
 the client fill the entire month working days
 
 ## install & usage
-- pip install requests
-- pip install BeautifulSoup
 - git clone git@github.com:elasti-rans/fibrkomat.git
 - cd fibrkomat
+- pip install -r requirements.txt
 - ./fibrkomat.py company_number user_number password
 
 ## warnings
