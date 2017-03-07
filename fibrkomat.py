@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # PYTHON_ARGCOMPLETE_OK
 
+import sys
 import time
 import random
 import os.path
@@ -169,6 +170,15 @@ def str_to_dates(val):
     return [day]
 
 
+def _get_config():
+    path = os.path.expanduser('~/fibrkomat.conf')
+    try:
+        with open(path) as fh:
+            return fh.read().split()
+    except IOError:
+        return []
+
+
 def _parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('company', type=int)
@@ -191,7 +201,10 @@ def _parse_args():
              'date format can be: <day> , <day>-<month>, <day>-<month>-<year>,'
              ' <date> to <date>')
 
-    args = parser.parse_args()
+    config = _get_config()
+    argv = sys.argv[1:]
+    argv.extend(config)
+    args = parser.parse_args(argv)
     args.vacation = itertools.chain.from_iterable(args.vacation)
     return args
 
