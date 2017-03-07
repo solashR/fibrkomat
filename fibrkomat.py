@@ -61,8 +61,7 @@ class TimeNet(object):
 
             date, _ = day.find('font').string.split(' ')
             date_obj = datetime.datetime.strptime(date, '%d-%m-%Y').date()
-
-            is_day_filled = self._is__day_filled(day, date_obj)
+            is_day_filled = self._is__day_filled(day)
 
             hours, minutes = hours_min.split(':')
             work_time = int(hours) * 3600 + int(minutes) * 60
@@ -88,7 +87,7 @@ class TimeNet(object):
         if 'TimeWatch - Reject' in res.text:
             raise AssertionError('set date={} time failed'.format(data))
 
-    def _is__day_filled(self, day, timestamp):
+    def _is__day_filled(self, day):
         filled, val = self._excuse_value_filled(day)
         if filled:
             return True
@@ -175,8 +174,10 @@ def _parse_args():
     parser.add_argument('company', type=int)
     parser.add_argument('user_number', type=int)
     parser.add_argument('password')
-    parser.add_argument('-m', '--month', type=int, default=datetime.date.today().month)
-    parser.add_argument('-y', '--year', type=int, default=datetime.date.today().year)
+    parser.add_argument(
+        '-m', '--month', type=int, default=datetime.date.today().month)
+    parser.add_argument(
+        '-y', '--year', type=int, default=datetime.date.today().year)
     parser.add_argument('-s', '--start-hour', type=int, default=34200,
                         help='seconds since 00:00')
     parser.add_argument('-r', '--random', type=int, default=0,
@@ -202,8 +203,8 @@ def main():
     t.login()
 
     vacations = set(args.vacation)
-    for date, work_time, is_day_filled in t.expected_times(args.year, args.month):
-
+    entries = t.expected_times(args.year, args.month)
+    for date, work_time, is_day_filled in entries:
         work_time += args.extra_work
         start_hour = random.randint(args.start_hour,
                                     args.start_hour + args.random)
