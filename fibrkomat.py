@@ -68,13 +68,13 @@ class TimeNet(object):
 
             yield date_obj, work_time, is_day_filled
 
-    def set_day(self, date, start, end, comment='', excuse=Absense.NO):
-        start_minutes = _sec_min_part(start) if start else ''
-        start_hours = _sec_hours_part(start) if start else ''
-        end_minutes = _sec_min_part(end) if end else ''
-        end_hours = _sec_hours_part(end) if end else ''
+    def set_day(self, day, start=None, end=None, comment='', excuse=Absense.NO):
+        start_minutes = '' if start is None else _sec_min_part(start)
+        start_hours = '' if start is None else _sec_hours_part(start)
+        end_minutes = '' if end is None else _sec_min_part(end)
+        end_hours = '' if end is None else _sec_hours_part(end)
 
-        date_str = '{y}-{m}-{d}'.format(y=date.year, m=date.month, d=date.day)
+        date_str = '{y}-{m}-{d}'.format(y=day.year, m=day.month, d=day.day)
         data = {'e': self._employee_id, 'tl': self._employee_id,
                 'c': self._company, 'd': date_str,
                 'task0': 0, 'taskdescr0': '', 'what0': 1,
@@ -214,7 +214,7 @@ def main():
         time.sleep(1)
         if date in vacations:
             print 'set vacation at {}'.format(date)
-            t.set_day(date, start='', end='', excuse=Absense.VACATION)
+            t.set_day(date, excuse=Absense.VACATION)
         elif not is_day_filled or args.overwrite:
             print 'set working day at {}'.format(date)
             t.set_day(date, start_hour, end_hour)
