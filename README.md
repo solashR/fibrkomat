@@ -20,4 +20,4 @@ the client fill the entire month working days
 - a config file can be created at ~/fibrkomat.conf
 - config file is a way to add a flags/ args to cli automatically
 - format of config is single line with same syntax as clli
-- config content example: "<company> <user> <password> -s 36000"
+- config content example: "company user password -s 36000"
